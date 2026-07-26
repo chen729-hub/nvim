@@ -1,0 +1,32 @@
+# ── 本机状态 / 会话（绝不能进仓库）──────────────────────────
+Session.vim
+Sessionx.vim
+*.session
+*.session.tmp
+
+# shada（Vim 历史/寄存器/搜索等本机状态）
+*.shada
+*.shada.tmp
+
+# netrw 历史
+.netrwhist
+
+# swap / backup / undo / tags
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+tags
+*.tmp
+
+# ── 插件本地缓存（lazy.nvim / mason 数据在 ~/.local/share/nvim，不在这里）──
+# 但如果哪天有人把 lazy-lock 之外的状态文件落在配置目录，也忽略
+lazy-state.json
+lazy-cache/
+
+# ── 操作系统 / 编辑器杂项 ─────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── 注意：lazy-lock.json 必须提交！它是插件版本锁文件 = 你的"插件列表" ──
