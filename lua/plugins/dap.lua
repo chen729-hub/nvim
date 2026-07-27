@@ -163,6 +163,107 @@ return {
           },
         },
       }
+      ----------------------------------------------------------------
+      -- C / C++ / Rust：codelldb（mason 包名 codelldb）
+      -- codelldb 走 DAP server 模式：nvim-dap 拉起 adapter 进程监听端口，
+      -- 再以 client 身份连进去。${port} 是 nvim-dap 在 server 模式下注入的
+      -- 占位符（args 里的 ${port} 和 port 字段会被同一个空闲端口替换）。
+      -- liblldb.so 由 codelldb 自带，无需额外配置。
+      ----------------------------------------------------------------
+      dap.adapters.codelldb = function(on_config, config)
+        if config.port == nil then config.port = "${port}" end
+        on_config({
+          type = "server",
+          host = "127.0.0.1",
+          port = config.port,
+          executable = {
+            command = mason_pkgs .. "/codelldb/extension/adapter/codelldb",
+            args = { "--port", "${port}" },
+          },
+        })
+      end
+
+      -- program 用 function：每次启动会话时弹输入框，默认指向当前文件去掉
+      -- 后缀的同名二进制（gcc -o hello hello.c 的产物），用户可改可回车。
+      ----------------------------------------------------------------
+      dap.configurations.c = {
+        {
+          name = "Launch file",
+          type = "codelldb",
+          request = "launch",
+          program = function()
+            return vim.fn.input(
+              "Path to executable: ",
+              vim.fn.getcwd() .. "/" .. vim.fn.expand("%:t:r"),
+              "file"
+            )
+          end,
+          cwd = "${workspaceFolder}",
+          stopOnEntry = false,
+          args = {},
+        },
+      }
+      -- C++ 复用 C 的配置（codelldb 不区分语言，只看二进制）
+      dap.configurations.cpp = dap.configurations.c
+
+      -- Rust：crate 名未必等于文件名，先 cargo build 再调试
+      -- target/debug/ 下的产物，默认提示该目录让用户补全二进制名。
+      ----------------------------------------------------------------
+      dap.configurations.rust = {
+        {
+          name = "Launch (codelldb)",
+          type = "codelldb",
+          request = "launch",
+          program = function()
+            return vim.fn.input(
+              "Path to executable: ",
+              vim.fn.getcwd() .. "/target/debug/",
+              "file"
+            )
+          end,
+          cwd = "${workspaceFolder}",
+          stopOnEntry = false,
+          args = {},
+        },
+      }
+
+      ----------------------------------------------------------------
+      -- Go：delve（mason 包名 delve，可执行文件 dlv）
+      -- dlv dap 走 server 模式监听端口，与 codelldb 同理。
+      -- program 三种：当前文件 / 当前文件测试 / 当前包。
+      ----------------------------------------------------------------
+      dap.adapters.delve = {
+        type = "server",
+        port = "${port}",
+        executable = {
+          command = mason_pkgs .. "/delve/dlv",
+          args = { "dap", "-l", "127.0.0.1:${port}" },
+        },
+      }
+
+      dap.configurations.go = {
+        {
+          type = "delve",
+          name = "Debug (current file)",
+          request = "launch",
+          program = "${file}",
+          showLog = true,
+        },
+        {
+          type = "delve",
+          name = "Debug test (current file)",
+          request = "launch",
+          mode = "test",
+          program = "${file}",
+          showLog = true,
+        },
+        {
+          type = "delve",
+          name = "Debug (current package)",
+          request = "launch",
+          program = "${fileDirname}",
+        },
+      }
       dapui.setup()
       require("nvim-dap-virtual-text").setup({
         -- PHP 的 treesitter locals query 把变量赋值归类为 reference 而非 definition，

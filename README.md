@@ -10,7 +10,7 @@
 
 - **沙盒化代码运行**：`<leader>r` 一键运行当前文件。解释型/编译型语言全部走 `bubblewrap` 沙盒默认断网，编译产物落 `/tmp` 不污染项目目录；`SANDBOX=0` 关沙盒、`SANDBOX_NET=1` 放开网络。
 - **7 语言 LSP**：Lua / Python / Rust / JS·TS / Go / C·C++ / Bash，统一 `vim.lsp.config` 新 API 配置，root_dir 自动识别工程标记。
-- **多语言 DAP 调试**：Python (debugpy)、JS/TS (vscode-js-debug)、PHP (vscode-php-debug)，断点 / 单步 / 变量监视齐全。
+- **多语言 DAP 调试**：Python (debugpy)、JS/TS (vscode-js-debug)、PHP (vscode-php-debug)、C·C++·Rust (codelldb)、Go (delve)，断点 / 单步 / 变量监视齐全。
 - **智能 code runner**：自动检测项目 `.venv`、区分 Cargo 项目与单文件 Rust、为 Go/Rust 显式注入绝对路径缓存目录避免沙盒里全量重编译。
 - **per-window winbar**：每个窗口顶部一条独立标签栏（取代全局 bufferline），按窗口显示 buffer 顺序。
 - **自定义 dms 主题**：`colors/dms.lua` + 配套 lualine 主题，另内置 catppuccin / base16 备选。
@@ -40,7 +40,7 @@
     ├── lualine/themes/dms.lua
     └── plugins/             # 每个文件一类插件
         ├── lsp.lua          # LSP + nvim-cmp 自动补全
-        ├── dap.lua          # 调试适配器（Python/JS-TS/PHP）
+        ├── dap.lua          # 调试适配器（Python/JS-TS/PHP/C·Cpp·Rust/Go）
         ├── coderun.lua      # code_runner 沙盒配置
         ├── editor.lua       # treesitter / surround / autopairs / comment
         ├── ui.lua           # lualine / alpha / which-key / neo-tree
@@ -220,6 +220,50 @@ nvim
 - **C / C++ / Rust(单文件)** 编译产物落 `/tmp`，不污染源码目录。
 - **Python** 自动探测 `.venv` / `venv` / `env` / `~/.venv`。
 
+---
+
+## 代码调试（DAP）说明
+
+基于 **nvim-dap** + **nvim-dap-ui**，断点 / 单步 / 变量监视 / 调用栈齐全。所有调试器由 mason 自动安装，无需手动配置。
+
+### 支持语言
+
+| 语言 | 调试器（adapter） | 安装方式 |
+|---|---|---|
+| Python | debugpy | mason 自动 |
+| JS / TS | vscode-js-debug | mason 自动 |
+| PHP | vscode-php-debug | mason 自动 |
+| C / C++ / Rust | codelldb（LLDB） | mason 自动 |
+| Go | delve（dlv dap） | mason 自动 |
+
+### 关键区别：谁需要先手动编译？
+
+| 调试器 | 自动编译 | 说明 |
+|---|---|---|
+| delve（Go） | ✅ 会 | 打开 `.go` 文件直接 `<F5>`，delve 自己编译 |
+| codelldb（C/C++/Rust） | ❌ 不会 | codelldb 只管调试，编译要你自己来 |
+
+### 各语言用法
+
+**Go（最省心）** —— 打开 `.go` 文件 → `<leader>b` 打断点 → `<F5>`，菜单选一种：
+- `Debug (current file)` — 调试当前文件
+- `Debug test (current file)` — 调试当前文件的 `*_test.go`
+- `Debug (current package)` — 调试整个包
+
+**C / C++** —— 先手动编译出带调试信息的二进制（codelldb 不会帮你编）：
++```bash
+gcc -g -O0 hello.c -o hello      # -g 保留调试信息；-O0 关优化避免断点漂移、变量被优化掉
++```
+打开 `hello.c` → `<leader>b` 打断点 → `<F5>` → 弹出输入框（已预填 `<当前目录>/hello`）→ 回车。
+
+**Rust** —— 先 `cargo build`（debug profile 默认带调试信息，无需额外参数）：
++```bash
+cargo build
++```
+打开 `.rs` 文件 → `<leader>b` 打断点 → `<F5>` → 输入框默认填 `target/debug/`，补上 crate 名（见 `Cargo.toml` 的 `[package].name`）→ 回车。
+
+> C/Rust 调试前务必用 `-g`（Rust debug profile 自带）编译，否则断点对不上行号、变量被优化掉。
++
 ---
 
 ## 插件一览（38 个，见 `lazy-lock.json`）
