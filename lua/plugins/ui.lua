@@ -94,7 +94,28 @@ return {
   {
     "folke/which-key.nvim",
     event = "VeryLazy",
-    config = true,
+    config = function()
+      local wk = require("which-key")
+      wk.setup({})
+      ------------------------------------------------------------------
+      -- 纯前缀组注册中文组名：否则按 <leader> 后只看到 "+n keymaps"
+      -- 单个 leader 动作键（b断点 / e文件树 / g lazygit / l临时文件
+      -- / o大纲）自带 desc，which-key 自动显示，无需在此注册。
+      -- r 既是动作(运行)又有子键(rp/rc)，保持显示动作名最顺手，故不注册组。
+      ------------------------------------------------------------------
+      wk.add({
+        { "<leader>a", group = "AI",       icon = "󰚩" },
+        { "<leader>c", group = "代码",      icon = "󰅲" },
+        { "<leader>d", group = "调试",      icon = "󰆴" },
+        { "<leader>f", group = "查找",      icon = "󰍉" },
+        { "<leader>h", group = "Git hunk", icon = "󰊢" },
+        { "<leader>q", group = "会话",      icon = "󰐗" },
+        { "<leader>s", group = "搜索替换", icon = "󰈔" },
+        { "<leader>w", group = "窗口",      icon = "󱂬" },
+        { "<leader>x", group = "诊断",      icon = "󰒍" },
+        { "<leader>z", group = "折叠",      icon = "󰁂" },
+      })
+    end,
   },
 
   -- 主题（例如 catppuccin）
