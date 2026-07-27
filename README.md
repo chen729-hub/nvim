@@ -16,6 +16,10 @@
 - **自定义 dms 主题**：`colors/dms.lua` + 配套 lualine 主题，另内置 catppuccin / base16 备选。
 - **treesitter 折叠**：折叠后显示首行内容 + 行数；`zM`/`zR`/`<leader>zz` 全套折叠键。
 - **AI / Git TUI 集成**：`<leader>ao` 右侧分栏常驻 omp 会话（自动同步当前文件/光标/选区），`<leader>g` 浮动 lazygit。
+- **Git / 格式化 / 诊断 全家桶**：gitsigns 行内 hunk 操作（`<leader>h*`）、conform 保存即格式化（最小 diff 不破坏折叠）、trouble 诊断面板（`<leader>xx`）、spectre 全工程替换（`<leader>sr`）。
+- **flash 秒级光标跳转**：`s` + 两字符贴标签跳屏上任意处，LazyVim 默认方案。
+- **aerial 代码大纲 + 会话恢复**：`<leader>o` 实时符号树，persistence 按分支记忆窗口布局（`<leader>q*`）。
+- **语言深耕**：Rust 走 rustaceanvim（展开宏 / fly check，`<leader>R*`）+ crates.nvim 版本提示；Go 走 go.nvim（GoTest / GoImpl，`<leader>G*`）。
 - **零硬编码路径**：所有 mason / stdpath 走动态解析，换机器即用。
 
 ---
@@ -44,11 +48,25 @@
         ├── coderun.lua      # code_runner 沙盒配置
         ├── editor.lua       # treesitter / surround / autopairs / comment
         ├── ui.lua           # lualine / alpha / which-key / neo-tree
-        ├── tools.lua        # telescope / toggleterm / yazi
+        ├── tools.lua        # telescope(+fzf/ui-select 扩展) / toggleterm / yazi
         ├── projects.lua     # project.nvim
         ├── markdown.lua     # render-markdown / peek
         ├── ai.lua           # omp.nvim 桥接
-        └── dankcolors.lua
+        ├── dankcolors.lua
+        # —— 本轮新增（开发刚需 + 语言深耕）——
+        ├── gitsigns.lua     # Git 行内 hunk 操作
+        ├── conform.lua      # 格式化编排（保存即格式化）
+        ├── indent.lua       # 缩进引导线 (ibl)
+        ├── motion.lua       # flash 光标跳转
+        ├── trouble.lua      # 诊断面板
+        ├── todo.lua         # TODO/FIXME 高亮
+        ├── session.lua      # persistence 会话恢复
+        ├── spectre.lua      # 全工程查找替换
+        ├── aerial.lua       # 代码大纲
+        ├── snacks.lua       # vim.ui.input 美化
+        ├── rust.lua         # rustaceanvim（Rust 增强）
+        ├── crates.lua       # Cargo.toml 版本提示
+        └── go.lua           # go.nvim（Go 增强）
 ```
 
 ---
@@ -251,22 +269,50 @@ nvim
 - `Debug (current package)` — 调试整个包
 
 **C / C++** —— 先手动编译出带调试信息的二进制（codelldb 不会帮你编）：
-+```bash
+```bash
 gcc -g -O0 hello.c -o hello      # -g 保留调试信息；-O0 关优化避免断点漂移、变量被优化掉
-+```
+```
 打开 `hello.c` → `<leader>b` 打断点 → `<F5>` → 弹出输入框（已预填 `<当前目录>/hello`）→ 回车。
 
 **Rust** —— 先 `cargo build`（debug profile 默认带调试信息，无需额外参数）：
-+```bash
+```bash
 cargo build
-+```
+```
 打开 `.rs` 文件 → `<leader>b` 打断点 → `<F5>` → 输入框默认填 `target/debug/`，补上 crate 名（见 `Cargo.toml` 的 `[package].name`）→ 回车。
 
 > C/Rust 调试前务必用 `-g`（Rust debug profile 自带）编译，否则断点对不上行号、变量被优化掉。
+
+---
+
+## Git / 格式化 / 诊断 / 编辑增强（新增）
+
+本轮新增 15 个插件，补齐开发刚需（Git 集成 / 格式化 / 缩进线 / 诊断面板 / 光标跳转等）和语言深耕（Rust / Go）。
+
+| 插件 | 功能 | 快捷键 |
+|---|---|---|
+| **gitsigns.nvim** | 行内 git sign / hunk 暂存回退 / 行 blame | `<leader>hs` 暂存 · `<leader>hr` 回退 · `<leader>hp` 预览 · `<leader>hb` blame · `]h`/`[h` 跳 hunk |
+| **conform.nvim** | 保存即格式化（最小 diff，不破坏折叠） | 自动 `<leader>cf` 手动格式化 |
+| **indent-blankline.nvim** | 缩进引导线 + 当前作用域高亮 | 自动生效，无需绑键 |
+| **flash.nvim** | 贴标签瞬时跳转屏上任意处 | `s` + 两字符 · `S` 选 treesitter 节点 |
+| **trouble.nvim** | 诊断 / 引用 / quickfix 统一面板 | `<leader>xx` 全工程 · `<leader>xX` 当前 buffer · `<leader>cs` 引用 |
+| **telescope-fzf-native** | C 版高速模糊排序器 | 自动生效 |
+| **telescope-ui-select** | code action / 重命名走 telescope 浮窗 | 自动接管 `vim.ui.select` |
+| **todo-comments.nvim** | 高亮 TODO/FIXME/BUG + 全工程搜索 | `<leader>st` |
+| **persistence.nvim** | 按分支记忆窗口/缓冲布局 | `<leader>qs` 恢复 · `<leader>qS` 选择 · `<leader>ql` 上次 |
+| **nvim-spectre** | 全工程查找 + 批量替换面板 | `<leader>sr` 全工程 · `<leader>sow` 当前文件 |
+| **aerial.nvim** | 实时符号树大纲（treesitter+LSP） | `<leader>o` 切换 · `<leader>fs` telescope 选符号 |
+| **snacks.nvim** | 美化 `vim.ui.input` 输入框（替代 dressing） | 自动接管 |
+| **rustaceanvim** | Rust 增强：展开宏 / fly check / runnables | `<leader>Rm` 宏 · `<leader>Rr` 运行 · `<leader>Rd` 调试 · `<leader>Rc` 检查 |
+| **crates.nvim** | Cargo.toml 版本提示 + 一键升级（仅 toml） | `<leader>cu` 升级 · `<leader>cU` 全升 · `<leader>ch` 详情 |
+| **go.nvim** | Go 增强：GoTest / GoImpl / 跳测试 | `<leader>Gf` 测函数 · `<leader>Gt` 测文件 · `<leader>Gi` 接口 · `<leader>Ga` 跳测试 |
+
+> Formatter 二进制按需装：`pacman -S stylua shfmt clang` / `:MasonInstall black isort prettierd goimports gofumpt`。缺失时 conform 自动 fallback 到 LSP 格式化。
+> Rust/Go 增强与现有 lspconfig 已协调：rust_analyzer 移交给 rustaceanvim 直配；go.nvim 设 `lsp_cfg=false` 复用 lspconfig 的 gopls，不重复 attach。
+
 +
 ---
 
-## 插件一览（38 个，见 `lazy-lock.json`）
+## 插件一览（54 个，见 `lazy-lock.json`）
 
 | 类别 | 插件 |
 |---|---|
@@ -275,8 +321,15 @@ cargo build
 | 补全 | nvim-cmp · cmp-buffer · cmp-path · cmp_luasnip · LuaSnip |
 | 语法 | nvim-treesitter |
 | 文件 | neo-tree · yazi · alpha-nvim |
-| 查找 | telescope · plenary |
-| UI | lualine · which-key · nvim-web-devicons · nui |
+| 查找 | telescope · plenary · telescope-fzf-native · telescope-ui-select |
+| Git | gitsigns · nvim-spectre |
+| 格式化 | conform.nvim |
+| 缩进 | indent-blankline |
+| 诊断 | trouble · todo-comments |
+| 大纲 | aerial |
+| 光标跳转 | flash |
+| 会话 | persistence |
+| UI 美化 | snacks（vim.ui.input） · lualine · which-key · nvim-web-devicons · nui |
 | 终端 | toggleterm |
 | 调试 | nvim-dap · nvim-dap-ui · nvim-dap-virtual-text · mason-nvim-dap · nvim-nio |
 | 运行 | code_runner |

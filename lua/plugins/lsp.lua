@@ -90,12 +90,10 @@ return {
       })
 
       ----------------------------------------------------------------
-      -- Rust
+      -- Rust：改由 rustaceanvim 直配 rust-analyzer（见 plugins/rust.lua）
+      -- 这里不再走 lspconfig，避免双重 attach 冲突。
+      -- mason ensure_installed 仍保留 rust_analyzer 以装二进制。
       ----------------------------------------------------------------
-      vim.lsp.config("rust_analyzer", {
-        capabilities = capabilities,
-        root_dir = make_root_dir({ "Cargo.toml", "rust-project.json", ".git" }),
-      })
 
       ----------------------------------------------------------------
       -- JavaScript / TypeScript
@@ -160,7 +158,6 @@ return {
       vim.lsp.enable({
         "lua_ls",
         "pyright",
-        "rust_analyzer",
         "ts_ls",
         "gopls",
         "clangd",

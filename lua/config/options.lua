@@ -54,6 +54,10 @@ function _G.FoldText()
 end
 vim.opt.foldtext = "v:lua.FoldText()"
 
+-- 会话持久化（persistence.nvim 用）
+-- 只存布局/缓冲/标签/工作目录，不存 options/folds（避免插件 / 自写折叠串台）
+vim.opt.sessionoptions = "buffers,curdir,tabpages,winsize"
+
 -- 临时文件目录：让 backup/swap/undo 集中
 vim.opt.backup = false
 vim.opt.swapfile = false

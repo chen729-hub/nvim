@@ -283,6 +283,49 @@ map("n", "<leader>g", function()
   })
 end, { silent = true, desc = "Git: 浮动 lazygit" })
 
+-- ==========================================
+-- 15. Git 行内操作 (gitsigns) —— hunk 暂存/回退/预览/跳转
+--     与 <leader>g 浮动 lazygit 互补：lazygit 管整库提交，gitsigns 管当前文件细粒度
+-- ==========================================
+map("n", "]h", function() require("gitsigns").nav_hunk("next") end, { desc = "Git: 下一个 hunk" })
+map("n", "[h", function() require("gitsigns").nav_hunk("prev") end, { desc = "Git: 上一个 hunk" })
+map("n", "<leader>hs", function() require("gitsigns").stage_hunk() end,    { desc = "Git: 暂存 hunk" })
+map("n", "<leader>hr", function() require("gitsigns").reset_hunk() end,    { desc = "Git: 回退 hunk" })
+map("n", "<leader>hp", function() require("gitsigns").preview_hunk() end,  { desc = "Git: 预览 hunk" })
+map("n", "<leader>hb", function() require("gitsigns").blame_line() end,    { desc = "Git: 行 blame" })
+map("n", "<leader>hR", function() require("gitsigns").reset_buffer() end,  { desc = "Git: 回退整文件" })
+map({ "n", "v" }, "ih", ":<C-U>Gitsigns select_hunk<CR>", { silent = true, desc = "Git: 选 hunk（文本对象）" })
+
+-- ==========================================
+-- 16. 诊断面板 (trouble) —— 统一展示 diagnostics / references
+--     取代散落的 location list
+-- ==========================================
+map("n", "<leader>xx", "<cmd>Trouble diagnostics toggle<CR>", { desc = "诊断：全工程面板" })
+map("n", "<leader>xX", "<cmd>Trouble diagnostics toggle filter.buf=0<CR>", { desc = "诊断：当前 buffer" })
+map("n", "<leader>cs", "<cmd>Trouble lsp toggle focus=false<CR>",  { desc = "LSP: 符号引用面板" })
+
+-- ==========================================
+-- 17. 代码大纲 (aerial) + 格式化 (conform)
+-- ==========================================
+map("n", "<leader>o",  "<cmd>AerialToggle!<CR>", { desc = "大纲：切换符号树" })
+map("n", "<leader>fs", "<cmd>Telescope aerial<CR>", { desc = "查找：符号" })
+map("n", "<leader>cf", function() require("conform").format({ async = true }) end, { desc = "格式化：当前文件" })
+
+-- ==========================================
+-- 18. 搜索替换 / 待办 (spectre + todo-comments)
+-- ==========================================
+map("n", "<leader>sr", function() require("spectre").open() end,         { desc = "搜索：全工程替换" })
+map("n", "<leader>sow", function() require("spectre").open_file_search() end, { desc = "搜索：当前文件替换" })
+map("n", "<leader>st", "<cmd>TodoTelescope<CR>", { desc = "查找：待办 (TODO/FIXME)" })
+
+-- ==========================================
+-- 19. 会话恢复 (persistence) —— <leader>q 命名空间
+-- ==========================================
+map("n", "<leader>qs", function() require("persistence").load() end,        { desc = "会话：恢复当前目录" })
+map("n", "<leader>qS", function() require("persistence").select() end,      { desc = "会话：选择会话" })
+map("n", "<leader>ql", function() require("persistence").load({ last = true }) end, { desc = "会话：恢复上次" })
+map("n", "<leader>qd", function() require("persistence").stop() end,        { desc = "会话：本次不保存" })
+
 
 -- ==========================================
 -- 13. 备忘板

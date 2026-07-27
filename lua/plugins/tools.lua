@@ -8,7 +8,13 @@ return {
   -- ==================================================================
   {
     "nvim-telescope/telescope.nvim",
-    dependencies = { "nvim-lua/plenary.nvim" },
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      -- fzf-native：C 版高速模糊排序器，让 telescope 搜索更快更准
+      { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
+      -- ui-select：把 vim.ui.select（code action / 重命名）接管到 telescope 浮窗
+      "nvim-telescope/telescope-ui-select.nvim",
+    },
     cmd = "Telescope",
     config = function()
       require("telescope").setup({
@@ -18,7 +24,14 @@ return {
           sorting_strategy = "ascending",
           preview = { timeout = 250, filesize_limit = 10 },
         },
+        extensions = {
+          -- code action / 重命名弹窗用下拉式 telescope 浮窗
+          ["ui-select"] = require("telescope.themes").get_dropdown({}),
+        },
       })
+      -- 启用扩展（pcall 容错：扩展未装也不崩）
+      pcall(require("telescope").load_extension, "fzf")
+      pcall(require("telescope").load_extension, "ui-select")
     end,
   },
 
