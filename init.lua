@@ -30,6 +30,9 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup("plugins", {
   ui = { border = "rounded" },
   change_detection = { notify = false },
+  -- 关掉 luarocks：本配置无任何插件依赖 luarocks（已核实 lazy-lock + 全部 spec），
+  -- 默认的 hererocks 自动安装会报 ❌，关掉后 :checkhealth lazy 干净。
+  rocks = { enabled = false },
   -- 关掉旧 API 废弃弹窗，不再需要全局 g:deprecation_warnings 假补丁
   performance = {
     rtp = {
