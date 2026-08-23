@@ -131,8 +131,17 @@ end, { noremap = true, silent = true, desc = "回到目录树" })
 -- Ctrl + l : 回到右侧代码编辑区
 map("n", "<C-l>", "<C-w>l", { noremap = true, silent = true, desc = "去文件编辑区" })
 
--- <leader>e : 切换文件树
-map("n", "<leader>e", "<cmd>Neotree toggle<CR>", { noremap = true, silent = true, desc = "切换文件树" })
+-- <leader>e : 切换文件树（与 spectre 互斥：开文件树前先关 spectre 栏）
+map("n", "<leader>e", function()
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    local ok, buf = pcall(vim.api.nvim_win_get_buf, win)
+    if ok and vim.bo[buf].filetype == "spectre_panel" then
+      pcall(require("spectre").close)
+      break
+    end
+  end
+  vim.cmd("Neotree toggle")
+end, { noremap = true, silent = true, desc = "切换文件树" })
 
 -- ==========================================
 -- 5. Telescope 模糊检索
@@ -147,7 +156,48 @@ map("n", "<leader>fh", "<cmd>Telescope help_tags<CR>",  { noremap = true, silent
 -- 6. 终端 (ToggleTerm)
 -- ==========================================
 
-map({ "n", "t" }, "<C-\\>", "<cmd>ToggleTerm<CR>", { noremap = true, silent = true, desc = "切换浮动终端" })
+-- 常驻 TUI 终端工厂（omp / lazygit / shell 共用）。
+-- 终端实例缓存在模块 local，避免每次 toggle 重建进程。
+local tui_terms = {}
+
+local function toggle_tui(name, opts)
+  if tui_terms[name] == nil then
+    tui_terms[name] = require("toggleterm.terminal").Terminal:new(opts)
+  end
+  tui_terms[name]:toggle()
+end
+
+-- <C-\> : 专属 shell 终端（VSCode 式全宽底部面板）。
+-- 不能用 :ToggleTerm / open_mapping / term:toggle()——它们最终都走
+-- toggleterm 的 smart_toggle/open_split：
+--   1. smart_toggle 发现 omp 面板（也是 toggleterm 终端）开着 → 判定为
+--      "关闭终端"而不是"打开 shell"，永远召唤不出来；
+--   2. open_split 发现已有终端窗口开着 → 先跳进 omp 竖栏再
+--      "rightbelow vsplit"，shell 被开成右侧小窗而不是底部面板。
+-- 所以这里自己管窗口：首开先 spawn() 起后台 job（不开窗），再固定
+-- botright split 出全宽底部窗口；关闭走 toggleterm 自己的 close()。
+map({ "n", "t" }, "<C-\\>", function()
+  local t = tui_terms.shell
+  if t and t:is_open() then
+    t:close()
+    return
+  end
+  if not t then
+    t = require("toggleterm.terminal").Terminal:new({ direction = "horizontal", hidden = true })
+    tui_terms.shell = t
+  end
+  if not (t.bufnr and vim.api.nvim_buf_is_valid(t.bufnr)) then
+    t:spawn() -- 只建 buffer 和 job，不开窗（避开 open_split 的朝向猜测）
+  end
+  local ui = require("toggleterm.ui")
+  ui.set_origin_window() -- 记住来源窗口，关终端后焦点回得来
+  vim.cmd("botright " .. math.max(10, math.floor(vim.o.lines * 0.3)) .. "split")
+  t.window = vim.api.nvim_get_current_win()
+  vim.api.nvim_win_set_buf(t.window, t.bufnr)
+  ui.hl_term(t)
+  if t.on_open then t:on_open() end
+  vim.cmd("startinsert") -- 像 VSCode 一样：打开即输入
+end, { noremap = true, silent = true, desc = "切换底部终端" })
 -- 终端模式：双击 Esc 切回普通模式。
 -- 单 Esc 不再绑定 → 默认透传 pty，让 omp / lazygit / fzf / shell 里的 vim 都能收到；
 -- 普通 toggleterm 里单击会有 ~timeoutlen(400ms) 延迟才透传（等歧义超时），omp buffer 另用 nowait 免延迟（见 <leader>ao）。
@@ -238,18 +288,8 @@ map("n", "<leader>wl", "<C-w>l",          { silent = true, desc = "窗口：移�
 -- ==========================================
 -- 14. AI / Git TUI (omp + lazygit)
 -- ------------------------------------------------------------------
--- 复用 toggleterm 的 Terminal:new 起常驻 TUI，首次按键才 lazy 创建。
--- 终端实例缓存在模块 local，避免每次 toggle 重建进程。
+-- 复用第 6 节的 toggle_tui 起常驻 TUI，首次按键才 lazy 创建。
 -- ==========================================
-
-local tui_terms = {}
-
-local function toggle_tui(name, opts)
-  if tui_terms[name] == nil then
-    tui_terms[name] = require("toggleterm.terminal").Terminal:new(opts)
-  end
-  tui_terms[name]:toggle()
-end
 
 -- <leader>ao : 右侧分栏常驻 omp 会话
 --   omp.nvim 会把这个会话设为活跃目标，自动同步当前文件 / 光标 / 选区
@@ -314,8 +354,18 @@ map("n", "<leader>cf", function() require("conform").format({ async = true }) en
 -- ==========================================
 -- 18. 搜索替换 / 待办 (spectre + todo-comments)
 -- ==========================================
-map("n", "<leader>sr", function() require("spectre").open() end,         { desc = "搜索：全工程替换" })
-map("n", "<leader>sow", function() require("spectre").open_file_search() end, { desc = "搜索：当前文件替换" })
+map("n", "<leader>sr", function() require("spectre").toggle() end,         { desc = "搜索：全工程替换" })
+-- 当前文件替换：若焦点已在 spectre sidebar（spectre 用 % 取当前 buffer，
+-- 会把 spectre 自己当文件名），先切回 spectre 记录的原始文件窗口再调用，
+-- 保证 Path 行正确预填当前文件。
+map("n", "<leader>sow", function()
+  local state = require("spectre.state")
+  if vim.bo.ft == "spectre_panel"
+     and state.target_winid and vim.api.nvim_win_is_valid(state.target_winid) then
+    vim.api.nvim_set_current_win(state.target_winid)
+  end
+  require("spectre").open_file_search()
+end, { desc = "搜索：当前文件替换" })
 map("n", "<leader>st", "<cmd>TodoTelescope<CR>", { desc = "查找：待办 (TODO/FIXME)" })
 
 -- ==========================================

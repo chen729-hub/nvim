@@ -78,8 +78,8 @@ function _G.WinbarCloseClick(minwid, _clicks, _button, _mods)
 end
 
 -- 这些 filetype / buftype 的窗口不画标签栏
-local skip_ft = { ["neo-tree"]=true, ["toggleterm"]=true, ["alpha"]=true,
-                  ["TelescopePrompt"]=true, ["yazi"]=true }
+local skip_ft = { ["neo-tree"]=true, ["spectre_panel"]=true, ["toggleterm"]=true,
+                  ["alpha"]=true, ["TelescopePrompt"]=true, ["yazi"]=true }
 
 -- ---------------------------------------------------------------------------
 -- per-window 标签列表

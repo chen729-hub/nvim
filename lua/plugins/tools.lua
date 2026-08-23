@@ -68,6 +68,31 @@ return {
     config = function()
       require("neo-tree").setup({
         window = { width = 30 },
+        -- 前缀数字自然排序：笔记里 "2 xxx" 排在 "10 xxx" 前面。
+        -- 文件/文件夹一视同仁；保持 neo-tree 默认的「目录在文件前」分组。
+        -- 注意：必须是顶层选项（不是 filesystem 下），且 neo-tree 校验时会
+        -- 传入不含 name 的 { type="dir", path="foo" }，name 要用 path 兜底。
+        sort_function = function(a, b)
+          if a.type ~= b.type then
+            return a.type == "directory"
+          end
+          local name_a = a.name or a.path or ""
+          local name_b = b.name or b.path or ""
+          local na = name_a:match("^%s*(%d+)")
+          local nb = name_b:match("^%s*(%d+)")
+          if na and nb then
+            if na ~= nb then
+              return tonumber(na) < tonumber(nb)
+            end
+            -- 序号相同（如 "1 文件" 与 "01 文件"）再按名字排
+            return name_a < name_b
+          end
+          -- 带序号的排在不带序号的前面
+          if na or nb then
+            return na ~= nil
+          end
+          return name_a < name_b
+        end,
       })
     end,
   },
@@ -85,7 +110,6 @@ return {
     config = function()
       require("toggleterm").setup({
         direction = "horizontal",
-        open_mapping = [[<C-\>]],
         on_create = function(term)
           -- 当前项目本地 venv 优先，再退回全局 ~/.venv
           local candidates = {
