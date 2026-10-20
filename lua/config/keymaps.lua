@@ -169,10 +169,16 @@ map("n", "<leader>fh", "<cmd>Telescope help_tags<CR>",  { noremap = true, silent
 local tui_terms = {}
 
 local function toggle_tui(name, opts)
-  if tui_terms[name] == nil then
-    tui_terms[name] = require("toggleterm.terminal").Terminal:new(opts)
+  local term = tui_terms[name]
+  if term == nil then
+    term = require("toggleterm.terminal").Terminal:new(opts)
+    tui_terms[name] = term
   end
-  tui_terms[name]:toggle()
+  -- Terminal:new 不消费 size 字段，宽度必须经 :toggle(size) 传入 open_split
+  -- 才生效（vertical 分栏 size 单位 = 列数）。
+  -- opts 表本身就是 term 对象，所以 term.size 即调用时的 opts.size；
+  -- 浮动方向（lazygit）忽略 size，不受影响。
+  term:toggle(term.size)
 end
 
 -- <C-\> : 专属 shell 终端（VSCode 式全宽底部面板）。
@@ -307,11 +313,15 @@ map("n", "<leader>ao", function()
     direction = "vertical",
     hidden = true,
     close_on_exit = true,
-    -- omp buffer 内单 Esc 透传打断 AI。
-    -- buffer-local + nowait：无前缀歧义、不等 timeoutlen，单击立即透传。
-    -- 副作用：此 buffer 里双击 <Esc><Esc> 也不再退 normal（第一个 Esc 已被本映射吃掉）；
-    --   想退 normal 操纵窗口用 <C-\><C-n>，或再按 <leader>ao 收起。
+    -- 竖分栏宽度（列数）。toggleterm 默认 size=12，对 omp 这种宽排版
+    -- TUI 太窄；显式传入的 size 优先于 persist_size 的记忆值，所以每次
+    -- 打开都是这个宽度，手动调整只活到本次关闭。想改默认改这个数。
+    size = 56,
     on_open = function(term)
+      -- omp buffer 内单 Esc 透传打断 AI。
+      -- buffer-local + nowait：无前缀歧义、不等 timeoutlen，单击立即透传。
+      -- 副作用：此 buffer 里双击 <Esc><Esc> 也不再退 normal（第一个 Esc 已被本映射吃掉）；
+      --   想退 normal 操纵窗口用 <C-\><C-n>，或再按 <leader>ao 收起。
       vim.keymap.set("t", "<Esc>", "<Esc>", {
         buffer = term.bufnr, noremap = true, silent = true, nowait = true,
         desc = "omp: 透传 Esc（打断 AI）",
