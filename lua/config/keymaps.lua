@@ -25,6 +25,14 @@ map("i", "<C-v>", '<ESC>"+pa', { noremap = true, silent = true, desc = "插入�
 map("v", "<C-x>", '"+d', { noremap = true, silent = true, desc = "剪切到系统剪切板" })
 map("n", "<C-x>", '"+dd', { noremap = true, silent = true, desc = "剪切当前行到系统剪切板" })
 
+-- :Q / Q : 强制退出所有窗口，直接回终端
+--   - 用户命令 :Q（大写，:q 是单窗口，:qa 太长）
+--   - 普通模式按 Q 一键触发（Q 原生是重复宏，几乎没人用，白占用）
+vim.api.nvim_create_user_command("Q", function()
+  vim.cmd("qa!")
+end, { desc = "退出所有窗口并关闭 nvim" })
+map("n", "Q", "<cmd>Q<CR>", { noremap = true, silent = true, desc = "退出所有窗口并关闭 nvim" })
+
 -- ==========================================
 -- 2. 文本快速选择
 -- ==========================================
