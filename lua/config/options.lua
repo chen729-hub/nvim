@@ -33,6 +33,8 @@ vim.opt.splitbelow = true
 vim.opt.scrolloff = 4
 vim.opt.sidescrolloff = 8
 vim.opt.wrap = true                   -- 软换行：一行放不下时自动折到下一屏幕行显示（不产生真实换行）
+-- 按屏幕显示行滚动，避免 Markdown 隐藏公式源码后滚轮被旧光标位置拉回。
+vim.opt.smoothscroll = true
 vim.opt.linebreak = true              -- 只在单词边界折行，不把单词从中间截断
 vim.opt.breakindent = true            -- 折行后的续行保留原行缩进
 vim.opt.breakindentopt = "shift:2"    -- 续行整体再缩进 2 格，与原行错开更好认
@@ -54,7 +56,7 @@ vim.opt.fillchars:append({ foldopen = "▾", foldclose = "▸", foldsep = "│" 
 function _G.FoldText()
   local line = vim.fn.getline(vim.v.foldstart)
   local cnt = vim.v.foldend - vim.v.foldstart + 1
-  return line .. "  [" .. cnt .. " lines]"
+  return line .. "  [" .. cnt .. " 行]"
 end
 vim.opt.foldtext = "v:lua.FoldText()"
 

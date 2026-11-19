@@ -171,7 +171,7 @@ return {
         group = vim.api.nvim_create_augroup("UserLspConfig", { clear = true }),
         callback = function(ev)
           local opts = function(desc)
-            return { buffer = ev.buf, silent = true, desc = "LSP: " .. desc }
+            return { buffer = ev.buf, silent = true, desc = "语言服务：" .. desc }
           end
 
           vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts("跳转到定义"))
@@ -180,7 +180,7 @@ return {
           vim.keymap.set("n", "K", vim.lsp.buf.hover, opts("悬浮文档"))
           vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts("跳转到声明"))
           vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts("重命名符号"))
-          vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts("Code Action"))
+          vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts("代码操作"))
           vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, opts("上一条诊断"))
           vim.keymap.set("n", "]d", vim.diagnostic.goto_next, opts("下一条诊断"))
           vim.keymap.set("n", "<leader>dl", vim.diagnostic.setloclist, opts("诊断列表"))

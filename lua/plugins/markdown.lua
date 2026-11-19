@@ -5,9 +5,6 @@
 --   * peek.nvim            —— 浏览器实时预览（保留原有）
 --   * 自定义快捷键 + 表格自动对齐见 lua/config/markdown.lua
 
--- latex 转换器：自建免 sudo shim（pylatexenc + 上下标补转），绝对路径稳妥
-local latex_converter = vim.fn.expand("~/.local/share/nvim-latex/bin/latex2text")
-
 return {
   -- ==================================================================
   -- render-markdown.nvim：表格 / latex / 标题 / callout 可视化渲染
@@ -20,18 +17,43 @@ return {
     dependencies = {
       "nvim-treesitter/nvim-treesitter",
       "nvim-tree/nvim-web-devicons",
-    },
-    opts = {
-      latex = {
-        enabled = true,
-        converter = { latex_converter },
+      {
+        "bartp5/libtexprintf",
+        -- 上游 utftex：由 Lazy 下载并编译，无需 sudo。
+        -- 静态链接 libtexprintf，直接运行仓库内的 src/utftex。
+        build = "./autogen.sh && ./configure --disable-shared && make",
       },
-      -- 渲染的窗口模式（普通/命令/终端）
-      render_modes = { "n", "c", "t" },
-      -- 代码块上方显示语言图标
-      code = { sign = true, style = "full" },
     },
+    opts = function()
+      local utftex = require("lazy.core.config").plugins.libtexprintf.dir .. "/src/utftex"
+      vim.env.NVIM_MATH_UTF_TEX = utftex
+      local utftex_compat = vim.fn.stdpath("config") .. "/scripts/utftex-compat"
+      return {
+        latex = {
+          enabled = true,
+          -- 优先用原生转换；仅失败的公式进入兼容处理。
+          converter = { utftex, utftex_compat },
+          -- 行内公式原位显示；多行块交给下面的整行替换配置。
+          position = "center",
+        },
+        pipe_table = {
+          border_virtual = true,
+        },
+        custom_handlers = { latex = require("config.markdown_math") },
+        -- 渲染的窗口模式（普通/命令/终端）
+        render_modes = { "n", "c", "t" },
+        -- Mermaid 交给 Snacks；隐藏结束围栏会连带隐藏其上的图像虚拟行。
+        code = {
+          sign = true,
+          style = "full",
+          -- 隐藏结束围栏整行会让超过一屏的软换行代码卡住滚轮。
+          border = "thin",
+          disable = { "mermaid" },
+        },
+      }
+    end,
     config = function(_, opts)
+      require("config.markdown_tables").setup()
       require("render-markdown").setup(opts)
 
       -- 挂上 markdown 专属快捷键 + 表格自动对齐

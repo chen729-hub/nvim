@@ -11,7 +11,7 @@ return {
   opts = {},
   keys = {
     { "s",     mode = { "n", "x", "o" }, function() require("flash").jump() end,         desc = "Flash：跳转" },
-    { "S",     mode = { "n", "x", "o" }, function() require("flash").treesitter() end,   desc = "Flash：选 treesitter 节点" },
+    { "S",     mode = { "n", "x", "o" }, function() require("flash").treesitter() end,   desc = "Flash：选择语法节点" },
     { "<c-s>", mode = { "c" },           function() require("flash").toggle() end,       desc = "Flash：切换搜索高亮" },
   },
 }

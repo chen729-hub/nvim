@@ -164,7 +164,7 @@ map("n", "<leader>fh", "<cmd>Telescope help_tags<CR>",  { noremap = true, silent
 -- 6. 终端 (ToggleTerm)
 -- ==========================================
 
--- 常驻 TUI 终端工厂（omp / lazygit / shell 共用）。
+-- 常驻 TUI 终端工厂（omp / Codex / lazygit / shell 共用）。
 -- 终端实例缓存在模块 local，避免每次 toggle 重建进程。
 local tui_terms = {}
 
@@ -256,6 +256,7 @@ map("n", "<A-l>", function() cycle_buf(1) end,  { desc = "右边标签页" })
 -- 8. 代码执行 (code_runner)
 -- ==========================================
 
+map("n", "<leader>p", "<cmd>PicListToggle<CR>", { noremap = true, silent = true, desc = "切换 PicList 自动上传" })
 map("n", "<leader>r",  "<cmd>RunCode<CR>",    { noremap = true, silent = true, desc = "运行当前文件" })
 map("n", "<leader>rp", "<cmd>RunProject<CR>", { noremap = true, silent = true, desc = "运行项目" })
 map("n", "<leader>rc", "<cmd>RunClose<CR>",   { noremap = true, silent = true, desc = "关闭运行窗口" })
@@ -271,12 +272,12 @@ map("n", "<leader>l", "<cmd>TempFileType<CR>", { desc = "切换临时文件语�
 --    使用 lazy require，无需 dap 插件在定义时已加载
 -- ==========================================
 
-map("n", "<leader>b", function() require("dap").toggle_breakpoint() end, { desc = "DAP: 切换断点" })
-map("n", "<F5>",       function() require("dap").continue() end,          { desc = "DAP: 继续" })
-map("n", "<F10>",      function() require("dap").step_over() end,         { desc = "DAP: 单步跨过" })
-map("n", "<F11>",      function() require("dap").step_into() end,         { desc = "DAP: 单步进入" })
-map("n", "<F12>",      function() require("dap").step_out() end,          { desc = "DAP: 单步跳出" })
-map("n", "<leader>du", function() require("dapui").toggle() end,          { desc = "DAP: 切换 UI" })
+map("n", "<leader>b", function() require("dap").toggle_breakpoint() end, { desc = "调试：切换断点" })
+map("n", "<F5>",       function() require("dap").continue() end,          { desc = "调试：继续" })
+map("n", "<F10>",      function() require("dap").step_over() end,         { desc = "调试：单步跨过" })
+map("n", "<F11>",      function() require("dap").step_into() end,         { desc = "调试：单步进入" })
+map("n", "<F12>",      function() require("dap").step_out() end,          { desc = "调试：单步跳出" })
+map("n", "<leader>du", function() require("dapui").toggle() end,          { desc = "调试：切换面板" })
 
 -- ==========================================
 -- 11. 折叠 (treesitter fold)
@@ -300,7 +301,7 @@ map("n", "<leader>wk", "<C-w>k",          { silent = true, desc = "窗口：移�
 map("n", "<leader>wl", "<C-w>l",          { silent = true, desc = "窗口：移到右边" })
 
 -- ==========================================
--- 14. AI / Git TUI (omp + lazygit)
+-- 14. AI / Git TUI (omp + Codex + lazygit)
 -- ------------------------------------------------------------------
 -- 复用第 6 节的 toggle_tui 起常驻 TUI，首次按键才 lazy 创建。
 -- ==========================================
@@ -328,7 +329,42 @@ map("n", "<leader>ao", function()
       })
     end,
   })
-end, { silent = true, desc = "AI: 切换 omp 终端" })
+end, { silent = true, desc = "智能助手：切换 omp 终端" })
+
+-- <leader>ac : 右侧分栏常驻 Codex 会话；隐藏面板不会结束进程。
+map("n", "<leader>ac", function()
+  if vim.fn.executable("codex") ~= 1 then
+    vim.notify("找不到 codex，请确认 Codex CLI 已安装并在 PATH 中", vim.log.levels.ERROR)
+    return
+  end
+  toggle_tui("codex", {
+    -- 避免 OSC 9 完成通知在嵌套终端中回流到 Codex 输入区。
+    cmd = "codex -c tui.notifications=false",
+    -- Codex 自己控制 TUI 光标和输入区；不要在每次输出时强制移动到 buffer 末尾。
+    auto_scroll = false,
+    dir = vim.fn.getcwd(),
+    direction = "vertical",
+    hidden = true,
+    close_on_exit = true,
+    size = 56,
+    -- 不继承全局 on_create 的 shell 初始化，避免向 Codex 输入激活 venv 的命令。
+    on_create = function() end,
+    on_open = function(term)
+      -- 其他终端已经打开时，ToggleTerm 会从该窗口继续切分；移到最右侧。
+      vim.cmd("wincmd L")
+      vim.api.nvim_win_set_width(term.window, term.size)
+      -- 编辑器的滚动边距会影响终端视口；TUI 使用完整可见区域。
+      vim.wo[term.window].scrolloff = 0
+      vim.wo[term.window].sidescrolloff = 0
+      vim.keymap.set("t", "<Esc>", "<Esc>", {
+        buffer = term.bufnr, noremap = true, silent = true, nowait = true,
+        desc = "Codex: 透传 Esc",
+      })
+      -- 单 Esc 留给 Codex；用 <C-\><C-n> 返回普通模式后再按 <leader>ac。
+      vim.cmd("startinsert")
+    end,
+  })
+end, { silent = true, desc = "智能助手：切换 Codex 终端" })
 
 -- <leader>g : 浮动 lazygit
 map("n", "<leader>g", function()
@@ -345,22 +381,22 @@ end, { silent = true, desc = "Git: 浮动 lazygit" })
 -- 15. Git 行内操作 (gitsigns) —— hunk 暂存/回退/预览/跳转
 --     与 <leader>g 浮动 lazygit 互补：lazygit 管整库提交，gitsigns 管当前文件细粒度
 -- ==========================================
-map("n", "]h", function() require("gitsigns").nav_hunk("next") end, { desc = "Git: 下一个 hunk" })
-map("n", "[h", function() require("gitsigns").nav_hunk("prev") end, { desc = "Git: 上一个 hunk" })
-map("n", "<leader>hs", function() require("gitsigns").stage_hunk() end,    { desc = "Git: 暂存 hunk" })
-map("n", "<leader>hr", function() require("gitsigns").reset_hunk() end,    { desc = "Git: 回退 hunk" })
-map("n", "<leader>hp", function() require("gitsigns").preview_hunk() end,  { desc = "Git: 预览 hunk" })
-map("n", "<leader>hb", function() require("gitsigns").blame_line() end,    { desc = "Git: 行 blame" })
+map("n", "]h", function() require("gitsigns").nav_hunk("next") end, { desc = "Git：下一个修改块" })
+map("n", "[h", function() require("gitsigns").nav_hunk("prev") end, { desc = "Git：上一个修改块" })
+map("n", "<leader>hs", function() require("gitsigns").stage_hunk() end,    { desc = "Git：暂存修改块" })
+map("n", "<leader>hr", function() require("gitsigns").reset_hunk() end,    { desc = "Git：回退修改块" })
+map("n", "<leader>hp", function() require("gitsigns").preview_hunk() end,  { desc = "Git：预览修改块" })
+map("n", "<leader>hb", function() require("gitsigns").blame_line() end,    { desc = "Git：查看行修改来源" })
 map("n", "<leader>hR", function() require("gitsigns").reset_buffer() end,  { desc = "Git: 回退整文件" })
-map({ "n", "v" }, "ih", ":<C-U>Gitsigns select_hunk<CR>", { silent = true, desc = "Git: 选 hunk（文本对象）" })
+map({ "n", "v" }, "ih", ":<C-U>Gitsigns select_hunk<CR>", { silent = true, desc = "Git：选择修改块（文本对象）" })
 
 -- ==========================================
 -- 16. 诊断面板 (trouble) —— 统一展示 diagnostics / references
 --     取代散落的 location list
 -- ==========================================
 map("n", "<leader>xx", "<cmd>Trouble diagnostics toggle<CR>", { desc = "诊断：全工程面板" })
-map("n", "<leader>xX", "<cmd>Trouble diagnostics toggle filter.buf=0<CR>", { desc = "诊断：当前 buffer" })
-map("n", "<leader>cs", "<cmd>Trouble lsp toggle focus=false<CR>",  { desc = "LSP: 符号引用面板" })
+map("n", "<leader>xX", "<cmd>Trouble diagnostics toggle filter.buf=0<CR>", { desc = "诊断：当前缓冲区" })
+map("n", "<leader>cs", "<cmd>Trouble lsp toggle focus=false<CR>",  { desc = "语言服务：符号引用面板" })
 
 -- ==========================================
 -- 17. 代码大纲 (aerial) + 格式化 (conform)

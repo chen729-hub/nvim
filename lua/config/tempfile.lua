@@ -91,7 +91,7 @@ end
 
 function M.change_type()
   if not vim.b.is_temp_file then
-    vim.notify("当前 buffer 不是临时文件", vim.log.levels.WARN)
+    vim.notify("当前缓冲区不是临时文件", vim.log.levels.WARN)
     return
   end
 
@@ -133,13 +133,13 @@ function M.setup()
   vim.api.nvim_create_user_command("TempFile", function()
     M.open()
   end, {
-    desc = "Open a markdown temporary file",
+    desc = "打开 Markdown 临时文件",
   })
 
   vim.api.nvim_create_user_command("TempFileType", function()
     M.change_type()
   end, {
-    desc = "Change temporary file language",
+    desc = "切换临时文件语言",
   })
 end
 

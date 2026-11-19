@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# 与 Snacks 的 stdpath("data")/mermaid 保持一致。
+mermaid_dir="${XDG_DATA_HOME:-$HOME/.local/share}/${NVIM_APPNAME:-nvim}/mermaid"
+command -v node >/dev/null
+command -v npm >/dev/null
+# 显式安装浏览器，兼容默认拦截 npm 生命周期脚本的新版本 npm。
+PUPPETEER_SKIP_DOWNLOAD=true npm install --prefix "$mermaid_dir" --ignore-scripts --save-exact --no-audit --no-fund @mermaid-js/mermaid-cli@12.2.0
+(
+  cd "$mermaid_dir"
+  ./node_modules/.bin/puppeteer browsers install chrome-headless-shell
+)
+"$mermaid_dir/node_modules/.bin/mmdc" --version
+echo 'Mermaid installed. Restart Neovim to enable inline diagrams.'

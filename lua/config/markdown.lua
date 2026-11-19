@@ -17,14 +17,14 @@ local M = {}
 
 -- 插入模式：插入空标记并把光标放中间
 local function ins(key, desc, rhs)
-  vim.keymap.set("i", key, rhs, { buffer = 0, silent = true, desc = "MD: " .. desc })
+  vim.keymap.set("i", key, rhs, { buffer = 0, silent = true, desc = "Markdown：" .. desc })
 end
 
 -- 可视模式：用 left/right 包裹选区
 -- 用纯 RHS 序列（c 选区 -> <C-r>" 粘回 -> 右标记 -> Esc），与插入模式同机制
 -- 代价：会占用无名寄存器 "，对格式化键可接受
 local function vis(key, desc, rhs)
-  vim.keymap.set("x", key, rhs, { buffer = 0, silent = true, desc = "MD(v): " .. desc })
+  vim.keymap.set("x", key, rhs, { buffer = 0, silent = true, desc = "Markdown 选区：" .. desc })
 end
 
 function M.keys(buf)
@@ -132,11 +132,20 @@ local function format_table()
   local contents = {}
   for lnum = s_line, e_line do
     local line = vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, true)[1]
-    local cells = {}
-    for cell in line:gmatch('([^|]+)%|') do
-      if (lnum - s_line) ~= 0 then cell = cell:match('^%s*(.-)%s*$') end
-      cells[#cells + 1] = cell
+    -- Only unescaped pipes delimit cells; retain escaped pipes and empty cells.
+    local cells, start, i = {}, 2, 2
+    while i <= #line do
+      local char = line:sub(i, i)
+      if char == "\\" then
+        i = i + 2
+      elseif char == "|" then
+        cells[#cells + 1] = vim.trim(line:sub(start, i - 1))
+        start, i = i + 1, i + 1
+      else
+        i = i + 1
+      end
     end
+    if #contents > 0 and #cells ~= #contents[1] then return end
     contents[#contents + 1] = cells
   end
   local width = get_cells_width(contents)

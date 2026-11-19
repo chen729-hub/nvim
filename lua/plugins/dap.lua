@@ -39,7 +39,7 @@ return {
         {
           type = "python",
           request = "launch",
-          name = "Launch file",
+          name = "调试当前文件",
           program = "${file}",
           pythonPath = function()
             -- 优先用当前项目的虚拟环境
@@ -94,14 +94,14 @@ return {
         {
           type = "pwa-node",
           request = "launch",
-          name = "Launch file",
+          name = "调试当前文件",
           program = "${file}",
           cwd = "${workspaceFolder}",
         },
         {
           type = "pwa-node",
           request = "attach",
-          name = "Attach (pick process)",
+          name = "附加到进程（选择进程）",
           processId = require("dap.utils").pick_process,
           cwd = "${workspaceFolder}",
         },
@@ -113,7 +113,7 @@ return {
         {
           type = "pwa-node",
           request = "launch",
-          name = "Launch file (node strip-types)",
+          name = "调试当前文件（剥离类型）",
           program = "${file}",
           cwd = "${workspaceFolder}",
           runtimeExecutable = "node",
@@ -123,7 +123,7 @@ return {
         {
           type = "pwa-node",
           request = "attach",
-          name = "Attach (pick process)",
+          name = "附加到进程（选择进程）",
           processId = require("dap.utils").pick_process,
           cwd = "${workspaceFolder}",
         },
@@ -146,7 +146,7 @@ return {
         {
           type = "php",
           request = "launch",
-          name = "Launch file",
+          name = "调试当前文件",
           program = "${file}",
           cwd = "${fileDirname}",
           port = 9003,
@@ -156,7 +156,7 @@ return {
         {
           type = "php",
           request = "launch",
-          name = "Listen for Xdebug (web)",
+          name = "等待 Xdebug 网页调试连接",
           port = 9003,
           pathMappings = {
             ["${workspaceFolder}"] = "${workspaceFolder}",
@@ -188,12 +188,12 @@ return {
       ----------------------------------------------------------------
       dap.configurations.c = {
         {
-          name = "Launch file",
+          name = "调试当前文件",
           type = "codelldb",
           request = "launch",
           program = function()
             return vim.fn.input(
-              "Path to executable: ",
+              "可执行文件路径：",
               vim.fn.getcwd() .. "/" .. vim.fn.expand("%:t:r"),
               "file"
             )
@@ -211,12 +211,12 @@ return {
       ----------------------------------------------------------------
       dap.configurations.rust = {
         {
-          name = "Launch (codelldb)",
+          name = "启动调试（codelldb）",
           type = "codelldb",
           request = "launch",
           program = function()
             return vim.fn.input(
-              "Path to executable: ",
+              "可执行文件路径：",
               vim.fn.getcwd() .. "/target/debug/",
               "file"
             )
@@ -244,14 +244,14 @@ return {
       dap.configurations.go = {
         {
           type = "delve",
-          name = "Debug (current file)",
+          name = "调试当前文件",
           request = "launch",
           program = "${file}",
           showLog = true,
         },
         {
           type = "delve",
-          name = "Debug test (current file)",
+          name = "调试当前文件的测试",
           request = "launch",
           mode = "test",
           program = "${file}",
@@ -259,7 +259,7 @@ return {
         },
         {
           type = "delve",
-          name = "Debug (current package)",
+          name = "调试当前包",
           request = "launch",
           program = "${fileDirname}",
         },

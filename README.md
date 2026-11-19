@@ -15,7 +15,7 @@
 - **per-window winbar**：每个窗口顶部一条独立标签栏（取代全局 bufferline），按窗口显示 buffer 顺序。
 - **自定义 dms 主题**：`colors/dms.lua` + 配套 lualine 主题，另内置 catppuccin / base16 备选。
 - **treesitter 折叠**：折叠后显示首行内容 + 行数；`zM`/`zR`/`<leader>zz` 全套折叠键。
-- **AI / Git TUI 集成**：`<leader>ao` 右侧分栏常驻 omp 会话（自动同步当前文件/光标/选区），`<leader>g` 浮动 lazygit。
+- **AI / Git TUI 集成**：`<leader>ao` 右侧分栏常驻 omp 会话（自动同步当前文件/光标/选区），`<leader>ac` 右侧分栏常驻 Codex 会话，`<leader>g` 浮动 lazygit。
 - **Git / 格式化 / 诊断 全家桶**：gitsigns 行内 hunk 操作（`<leader>h*`）、conform 保存即格式化（最小 diff 不破坏折叠）、trouble 诊断面板（`<leader>xx`）、spectre 全工程替换（`<leader>sr`）。
 - **flash 秒级光标跳转**：`s` + 两字符贴标签跳屏上任意处，LazyVim 默认方案。
 - **aerial 代码大纲 + 会话恢复**：`<leader>o` 实时符号树，persistence 按分支记忆窗口布局（`<leader>q*`）。
@@ -104,6 +104,7 @@ code_runner 一键运行 + LSP 都依赖系统 PATH 里的二进制：
 ### 可选
 
 - **omp** — AI 辅助（`<leader>ao`）。装好后运行 `omp plugin install omp.nvim`。
+- **Codex CLI** — AI 辅助（`<leader>ac`），需 `codex` 命令在 `$PATH` 中。
 - **yazi** — 终端文件管理器（yazi.nvim 依赖）。
 - **shellcheck** — bashls 静态检查推荐。
 
@@ -220,7 +221,10 @@ nvim
 | 按键 | 功能 |
 |---|---|
 | `<leader>ao` | 切换 omp 终端（自动同步上下文） |
+| `<leader>ac` | 切换 Codex 终端（右侧，保留会话） |
 | `<leader>g` | 浮动 lazygit |
+
+Codex 首次打开时使用 Neovim 当前工作目录。收起后再次打开会继续同一会话；退出 Codex 后再次打开则启动新会话。在 AI 终端内按 `Ctrl-\`、`Ctrl-n` 返回普通模式，再按对应快捷键收起。单独按 `Esc` 会直接传给 AI。Codex 此入口只提供终端集成，不自动同步编辑器选区。
 
 ---
 
@@ -313,7 +317,123 @@ cargo build
 +
 ---
 
-## 插件一览（54 个，见 `lazy-lock.json`）
+## 鼠标滚动
+
+启用 `smoothscroll`，让软换行、隐藏公式源码等情况下按屏幕显示行滚动。
+修复普通模式连续向上滚轮时视口反复跳回、需要点击正文才能继续的问题。
+该设置不添加滚轮映射，也不关闭 Markdown 渲染或折叠。
+代码块使用 `code.border = "thin"`，保留结束围栏所在的显示行，避免长代码
+软换行超过一屏时滚轮停在行首；语法高亮和软换行继续启用。
+缩进引导线对可见窗口中需要软换行的长行跳过覆盖，并关闭续行重复绘制，
+避免 `smoothscroll` 滚到行中间时虚拟缩进遮住真实文字。短行仍显示缩进线。
+
+## Markdown 公式渲染
+
+使用 [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim/wiki/LaTeX)
+原生支持的 [utftex / libtexprintf](https://github.com/bartp5/libtexprintf)，直接渲染上下标、分式和矩阵。
+不再调用 `~/.local/share/nvim-latex/bin/latex2text` 自定义转换脚本。
+
+Lazy 会下载 `libtexprintf` 并执行上游构建流程；需要 C 编译器、make、autoconf、automake、libtool。
+程序编译在 Lazy 的插件目录内，无需 sudo。首次安装需能访问 GitHub；安装失败后执行
+`:Lazy install libtexprintf`，重新编译可用 `:Lazy build libtexprintf`。
+安装完成后重启 Neovim，打开 Markdown 文件执行 `:checkhealth render-markdown` 检查依赖。
+
+公式使用标准 LaTeX 语法，例如 `$x^{n+1}$`、`$\frac{a+b}{c+d}$`；根号应写作 `\sqrt{...}`。
+显示采用终端 Unicode 字符；行内公式原位显示，多行 `$$...$$` 块通过插件的 `replace` 接口整块替换，
+源码和分隔符不再占用空行。公式转换仍由上游 utftex 完成，`config.markdown_math` 仅调整显示方式。
+原生转换失败时，`scripts/utftex-compat`（需要 Python 3）会对 `\mathbin{…}` 做显示兼容：
+保留括号组及内容，去掉 utftex 不支持的运算符类别标记，再交回 utftex。笔记源码不变；
+`\gcd` 同样在转换失败时映射为 `\operatorname{gcd}`，支持最大公约数及互素公式。
+`\boxed{…}` 映射为带四边框的单格 `array`，保留公式、嵌套分组和边框。
+其他不支持的命令仍会报错，不会把截断的输出当作成功结果。
+光标进入公式源码区域时，插件会自动展开源码供编辑；移出后重新收起。插入模式及
+`:RenderMarkdown disable` 也会恢复原文。代码块中的公式示例不受影响；与正文共用分隔符行的公式保留上游显示方式，避免隐藏正文。
+
+## Markdown 图片显示
+
+使用 [Snacks image](https://github.com/folke/snacks.nvim/blob/main/docs/image.md) 的 Kitty 图形协议支持。
+在 Kitty 中打开 Markdown 后，视口内的本地图片和 HTTP(S) 图片会自动显示；云端图片由 curl 下载并缓存到
+`~/.cache/nvim/snacks/image`。本机已安装所需的 ImageMagick、curl 和 Markdown Tree-sitter 解析器。
+
+图片最大显示尺寸为 80 列 × 30 行，保留链接便于编辑。打开笔记及滚动时自动加载图片，无需移动光标到链接或按快捷键；
+`<leader>mi` 只是额外的浮窗查看方式。`png!small` 等带图床后缀的链接原样交给 curl 下载，由 ImageMagick 识别图片内容。
+公式继续交给 render-markdown + utftex，Snacks 的数学渲染已关闭。
+
+`~/.config/tmux/tmux.conf` 已启用 `allow-passthrough`；Snacks 启动时也会为当前 tmux pane 开启透传。
+检测到 `KITTY_WINDOW_ID` 时，通过 Snacks 官方的 `SNACKS_KITTY=true` 环境开关识别 Kitty，避免 tmux 中终端探测失败导致内联显示被关闭。
+重启 Neovim 后生效。下载或转换失败时会显示错误原因。图片不显示时执行 `:checkhealth snacks`，同时确认图片链接能直接访问；
+需要登录或已经过期的图片地址仍需有效的访问链接。
+
+## Mermaid 自动渲染
+
+在 Kitty 中打开 Markdown，`mermaid` 围栏代码块会通过现有 Snacks image 自动渲染，
+不需要快捷键或开启命令。图表源码保留在笔记中，光标进入代码块时显示源码供编辑；
+移出后显示图表。编辑内容会触发重新渲染，已有结果会缓存在 `~/.cache/nvim/snacks/image`。
+Mermaid 围栏由 Snacks 独立处理；render-markdown 对该语言跳过代码框装饰，
+避免隐藏结束围栏时连带遮住图表下半部分。其他语言的代码框保持原有样式。
+
+````markdown
+```mermaid
+flowchart LR
+  A[开始] --> B[编辑笔记]
+  B --> C[自动显示图表]
+```
+````
+
+Mermaid CLI 独立安装在 `stdpath("data")/mermaid`（默认 `~/.local/share/nvim/mermaid`），
+Snacks 初始化时只为 Neovim 增加该目录的 `node_modules/.bin` 搜索路径。
+依赖 Node.js 22.13 以上、npm、Puppeteer 的 Chrome Headless Shell 和现有 ImageMagick；
+图表由本地浏览器渲染，不发送到在线渲染服务。
+
+重装依赖可执行 `bash ~/.config/nvim/scripts/install-mermaid`，然后重启 Neovim。
+首次安装需联网下载 CLI 和浏览器；转换失败时 Snacks 会显示原因，
+可用 `:checkhealth snacks` 检查依赖和终端图片协议。
+
+## PicList 图床粘贴
+
+沿用 PicList 自带的剪贴板自动上传功能：复制图片 → 等待 PicList 上传成功 → 在 Neovim 按 `Ctrl+V`，
+插入 `![](https://...)` 图片链接；Snacks 随后自动显示图片。上传由“复制图片”触发，粘贴键负责插入已经生成的链接。
+普通模式也可用 `"+p`，插入模式可用 `Ctrl+R` 后按 `+`，直接读取系统剪贴板。
+
+现有 PicList 配置为静默启动（`startMode=quiet`）、自动监听剪贴板、Markdown 输出、上传后自动复制链接；登录自启动由系统 XDG 自启动项负责。
+Neovim 已使用 `unnamedplus`，Wayland 的 `wl-copy` / `wl-paste` 已安装，无需再配置一套图床凭据或上传插件。
+自动监听是 PicList 的全局功能，在其他应用复制图片也会上传；它并不只作用于 Neovim。
+
+`~/.config/autostart/piclist-session.desktop` 使用 `/usr/bin/piclist` 在登录后启动。
+这个 Arch 安装包的内置自启动功能会把入口反复写成 Electron 路径并遗漏应用参数，因此已关闭 PicList 内部的 `autoStart`，
+移除其生成的 `piclist.desktop`，改用独立的系统自启动项。PicList 设置中的“开机启动”应保持关闭，系统仍会自动启动它。
+当前登录会话尚未启动 PicList 时，从应用菜单打开 PicList，或在终端运行 `piclist`。
+PicList 启动时会把当前剪贴板作为初始状态，因此启动之后需重新复制图片。
+
+本地 HTTP 服务配置端口为 `36677`；在桌面终端运行下面的只读检查：
+
+```sh
+curl --noproxy '*' --max-time 3 http://127.0.0.1:36677/heartbeat
+```
+
+返回 `{"success":true,"result":"alive"}` 表示服务可达；上传是否成功还要看 PicList 的上传结果。
+API 用法参见 [PicList 官方文档](https://www.piclist.cn/en/api)。
+
+## LiveSync 双向同步（开发版）
+
+本地插件 `~/tools/livesync.nvim` 用官方 Self-hosted LiveSync CLI 同步笔记和 CouchDB。
+完整设计、安装和验收说明见 [livesync.nvim README](../../tools/livesync.nvim/README.md)。
+私有配置保存在 `~/.config/livesync.nvim/settings.json`，不写进插件仓库；
+测试笔记目录是 `~/.local/share/nvim/livesync.nvim/test-vault`，默认不自动启动。
+插件前端已接入；真实双向同步仍需要安装官方引擎并连接测试库验证。
+
+先在插件目录运行 `bash scripts/install-engine.sh`，然后用 `:LiveSyncCheck` 检查连接，
+`:LiveSyncStart` / `:LiveSyncStop` 控制同步，`:LiveSyncStatus` 查看进程状态，
+`:LiveSyncLog` 查看脱敏日志。有未保存的笔记时暂停，保存并退出插入模式后恢复。
+
+## Obsidian Bases 表格视图
+
+打开 `.base` 文件后，`baseview.nvim` 会在 Neovim 编辑区内显示只读表格或卡片视图，不会启动网页或修改 `.base` / 笔记文件。
+`<Tab>` / `<S-Tab>` 切换视图，`<CR>` 打开当前笔记，`e` 查看 YAML 源码，`q` 返回打开前的 buffer；`:BaseView` 可选择或指定 Base，`:BaseRefresh` 重新读取。
+查询结果由本地 Python + PyYAML 引擎计算，公式只接受插件实现的安全表达式子集；当前 `网安数据库.base` 的全部 7 个视图均可解析。
+实现和完整按键说明见 [baseview.nvim README](../../tools/baseview.nvim/README.md)。
+
+## 插件一览（见 `lazy-lock.json`）
 
 | 类别 | 插件 |
 |---|---|
@@ -330,12 +450,13 @@ cargo build
 | 大纲 | aerial |
 | 光标跳转 | flash |
 | 会话 | persistence |
-| UI 美化 | snacks（vim.ui.input） · lualine · which-key · nvim-web-devicons · nui |
+| UI 美化 | snacks（vim.ui.input / image） · lualine · which-key · nvim-web-devicons · nui |
 | 终端 | toggleterm |
 | 调试 | nvim-dap · nvim-dap-ui · nvim-dap-virtual-text · mason-nvim-dap · nvim-nio |
 | 运行 | code_runner |
 | 项目 | project.nvim · projectmgr |
-| Markdown | render-markdown · peek |
+| Markdown | render-markdown · libtexprintf（utftex） · peek |
+| Obsidian | obsidian.nvim · baseview.nvim（本地插件） |
 | 编辑增强 | Comment · nvim-autopairs · nvim-surround · mini.bufremove |
 | 主题 | catppuccin · base16-nvim |
 | AI | omp.nvim |

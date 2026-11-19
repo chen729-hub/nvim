@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+"""Retry utftex formulas containing supported TeX compatibility aliases."""
+import os
+import re
+import subprocess
+import sys
+
+
+def normalize(source):
+    # Match whole control sequences, leaving escaped backslashes and longer
+    # command names intact. Keep grouping and arguments for the upstream parser.
+    tokens = r"\\(?:[A-Za-z]+|[^A-Za-z])|[{}]"
+    groups, stack = {}, []
+    for match in re.finditer(tokens, source):
+        if match.group() == "{":
+            stack.append(match.start())
+        elif match.group() == "}" and stack:
+            groups[stack.pop()] = match.start()
+
+    boxed_ends = set()
+
+    def replace(match):
+        if match.group() == "}" and match.start() in boxed_ends:
+            return r"}\\\hline\end{array}"
+        if match.group() == r"\boxed":
+            opening = re.match(r"\s*\{", source[match.end():])
+            if opening:
+                start = match.end() + opening.end() - 1
+                if start in groups:
+                    boxed_ends.add(groups[start])
+                    return r"\begin{array}{|c|}\hline "
+        if match.group() == r"\gcd":
+            return r"\operatorname{gcd}"
+        if match.group() == r"\mathbin" and re.match(r"\s*\{", source[match.end():]):
+            return ""
+        return match.group()
+
+    return re.sub(tokens, replace, source)
+
+
+def main():
+    source = sys.stdin.read()
+    normalized = normalize(source)
+    if source == normalized:
+        return 1
+    converter = os.environ.get("NVIM_MATH_UTF_TEX")
+    if not converter:
+        print("utftex compatibility: upstream converter is not configured", file=sys.stderr)
+        return 1
+    try:
+        result = subprocess.run([converter], input=normalized, text=True, timeout=10)
+        return result.returncode if result.returncode >= 0 else 1
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        print(f"utftex compatibility: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

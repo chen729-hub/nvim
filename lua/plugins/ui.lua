@@ -5,6 +5,7 @@ return {
   {
     "nvim-lualine/lualine.nvim",
     dependencies = { "nvim-tree/nvim-web-devicons" },
+    opts = { sections = { lualine_a = { { "mode", fmt = require("config.chinese").mode } } } },
     config = true,
   },
 
@@ -96,7 +97,7 @@ return {
     event = "VeryLazy",
     config = function()
       local wk = require("which-key")
-      wk.setup({})
+      wk.setup({ replace = { desc = { require("config.chinese").whichkey_desc } } })
       ------------------------------------------------------------------
       -- 纯前缀组注册中文组名：否则按 <leader> 后只看到 "+n keymaps"
       -- 单个 leader 动作键（b断点 / e文件树 / g lazygit / l临时文件
@@ -104,11 +105,13 @@ return {
       -- r 既是动作(运行)又有子键(rp/rc)，保持显示动作名最顺手，故不注册组。
       ------------------------------------------------------------------
       wk.add({
-        { "<leader>a", group = "AI",       icon = "󰚩" },
+        { "<leader>a", group = "智能助手", icon = "󰚩" },
         { "<leader>c", group = "代码",      icon = "󰅲" },
         { "<leader>d", group = "调试",      icon = "󰆴" },
         { "<leader>f", group = "查找",      icon = "󰍉" },
-        { "<leader>h", group = "Git hunk", icon = "󰊢" },
+        { "<leader>h", group = "Git 修改块", icon = "󰊢" },
+        { "<leader>m", group = "笔记工具", icon = "󰈙" },
+        { "<leader>n", group = "笔记同步", icon = "󰓦" },
         { "<leader>q", group = "会话",      icon = "󰐗" },
         { "<leader>s", group = "搜索替换", icon = "󰈔" },
         { "<leader>w", group = "窗口",      icon = "󱂬" },

@@ -22,8 +22,12 @@ return {
           layout_strategy = "horizontal",
           layout_config = { prompt_position = "top" },
           sorting_strategy = "ascending",
+          prompt_title = "搜索",
+          results_title = "结果",
+          preview_title = "预览",
           preview = { timeout = 250, filesize_limit = 10 },
         },
+        pickers = require("config.chinese").telescope_pickers(),
         extensions = {
           -- code action / 重命名弹窗用下拉式 telescope 浮窗
           ["ui-select"] = require("telescope.themes").get_dropdown({}),
@@ -66,23 +70,25 @@ return {
       "MunifTanjim/nui.nvim",
     },
     config = function()
+      local translate = require("config.chinese").tree_mappings
+      local defaults = require("neo-tree.defaults")
       require("neo-tree").setup({
-        window = { width = 30 },
+        window = { width = 30, mappings = translate(defaults.window.mappings) },
+        filesystem = { window = { mappings = translate(defaults.filesystem.window.mappings) } },
+        buffers = { window = { mappings = translate(defaults.buffers.window.mappings) } },
+        git_status = { window = { mappings = translate(defaults.git_status.window.mappings) } },
         -- 前缀数字自然排序：笔记里 "2 xxx" 排在 "10 xxx" 前面。
-        -- 文件/文件夹一视同仁；保持 neo-tree 默认的「目录在文件前」分组。
+        -- 同一层级不区分文件/文件夹，统一按数字前缀排列。
         -- 注意：必须是顶层选项（不是 filesystem 下），且 neo-tree 校验时会
         -- 传入不含 name 的 { type="dir", path="foo" }，name 要用 path 兜底。
         sort_function = function(a, b)
-          if a.type ~= b.type then
-            return a.type == "directory"
-          end
           local name_a = a.name or a.path or ""
           local name_b = b.name or b.path or ""
-          local na = name_a:match("^%s*(%d+)")
-          local nb = name_b:match("^%s*(%d+)")
+          local na = tonumber(name_a:match("^%s*(%d+)"))
+          local nb = tonumber(name_b:match("^%s*(%d+)"))
           if na and nb then
             if na ~= nb then
-              return tonumber(na) < tonumber(nb)
+              return na < nb
             end
             -- 序号相同（如 "1 文件" 与 "01 文件"）再按名字排
             return name_a < name_b
@@ -128,4 +134,5 @@ return {
       })
     end,
   },
+
 }
