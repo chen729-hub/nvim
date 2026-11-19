@@ -414,17 +414,19 @@ curl --noproxy '*' --max-time 3 http://127.0.0.1:36677/heartbeat
 返回 `{"success":true,"result":"alive"}` 表示服务可达；上传是否成功还要看 PicList 的上传结果。
 API 用法参见 [PicList 官方文档](https://www.piclist.cn/en/api)。
 
-## LiveSync 双向同步（开发版）
+## LiveSync 双向同步
 
-本地插件 `~/tools/livesync.nvim` 用官方 Self-hosted LiveSync CLI 同步笔记和 CouchDB。
-完整设计、安装和验收说明见 [livesync.nvim README](../../tools/livesync.nvim/README.md)。
-私有配置保存在 `~/.config/livesync.nvim/settings.json`，不写进插件仓库；
-测试笔记目录是 `~/.local/share/nvim/livesync.nvim/test-vault`，默认不自动启动。
-插件前端已接入；真实双向同步仍需要安装官方引擎并连接测试库验证。
+安装本地插件到 `~/tools/nvim-livesync`，再创建 `~/.config/nvim/local.lua`。该文件由 Git 忽略。
 
-先在插件目录运行 `bash scripts/install-engine.sh`，然后用 `:LiveSyncCheck` 检查连接，
-`:LiveSyncStart` / `:LiveSyncStop` 控制同步，`:LiveSyncStatus` 查看进程状态，
-`:LiveSyncLog` 查看脱敏日志。有未保存的笔记时暂停，保存并退出插入模式后恢复。
+```lua
+return {
+  vault_path = vim.fn.expand("~/path/to/vault"),
+  -- livesync_resolve_ip = "192.0.2.1", -- 默认使用系统 DNS，需要时填入本机使用的地址
+}
+```
+
+LiveSync 从笔记库的 `.obsidian/plugins/obsidian-livesync/data.json` 读取连接设置。配置好后可用 `:LiveSyncDoctor` 检查连接，
+用 `:LiveSyncStart` / `:LiveSyncStop` 控制同步，用 `:LiveSyncStatus` 查看状态。默认关闭自动同步。
 
 ## Obsidian Bases 表格视图
 

@@ -1,5 +1,9 @@
 -- 使用本机已验证的客户端；旧 CLI 插件及其状态目录保留，以便回退。
 -- 凭据直接从笔记库的 Obsidian 设置读取，不在本配置中保存密码。
+local settings = require("config.local_settings")
+local vault = settings.vault_path
+if not vault then return {} end
+
 return {
   dir = vim.fn.expand("~/tools/nvim-livesync"),
   name = "nvim-livesync",
@@ -18,12 +22,12 @@ return {
   },
   opts = {
     auto_start = false,
-    vault_path = "/path/to/vault",
+    vault_path = vault,
     state_dir = vim.fn.stdpath("state") .. "/nvim-livesync/main-vault",
     connection = {
       source = "obsidian_data",
-      data_path = "/path/to/vault/.obsidian/plugins/obsidian-livesync/data.json",
-
+      data_path = vim.fs.joinpath(vault, ".obsidian", "plugins", "obsidian-livesync", "data.json"),
+      resolve_ip = settings.livesync_resolve_ip,
     },
     sync = {
       initial = "safe",

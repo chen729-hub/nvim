@@ -30,3 +30,6 @@ lazy-cache/
 Thumbs.db
 
 # ── 注意：lazy-lock.json 必须提交！它是插件版本锁文件 = 你的"插件列表" ──
+
+# 个人路径和 LiveSync DNS 设置
+/local.lua

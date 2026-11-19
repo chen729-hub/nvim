@@ -1,5 +1,8 @@
 -- Obsidian vault integration. Markdown rendering and completion remain owned
 -- by render-markdown.nvim and the existing nvim-cmp LSP source.
+local vault = require("config.local_settings").vault_path
+if not vault then return {} end
+
 return {
   {
     "obsidian-nvim/obsidian.nvim",
@@ -15,7 +18,7 @@ return {
       workspaces = {
         {
           name = "main",
-          path = "/path/to/vault",
+          path = vault,
         },
       },
       completion = { min_chars = 2 },

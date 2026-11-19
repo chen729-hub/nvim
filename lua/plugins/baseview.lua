@@ -1,3 +1,6 @@
+local vault = require("config.local_settings").vault_path
+if not vault then return {} end
+
 return {
   {
     dir = vim.fn.expand("~/tools/baseview.nvim"),
@@ -9,7 +12,7 @@ return {
     end,
     config = function()
       require("baseview").setup({
-        vault = "/path/to/vault",
+        vault = vault,
         python = vim.fn.exepath("python3"),
         auto_open = true,
       })
